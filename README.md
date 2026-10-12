@@ -1,11 +1,13 @@
-# github-docker-mlflow
-Simple Machine Learning demo using docker in github + MLFlow
+# github-FastAPI
+Simple Machine Learning demo using docker in github + MLFlow + FastAPI examples
 
 # venv
+## with pip
 - python3.10 -m venv .venv
 - source .venv/bin/activate
 - pip install -v -r requirements.txt/requirements_dev.txt
 
+## with uv -- recommended
 - uv venv --python 3.10
 - source .venv/bin/activate
 - uv pip install -r requirements.txt/requirements_dev.txt
@@ -124,3 +126,15 @@ services:
 # docker image
 - docker image list -a                           # list all images
 - docker image rm <image name>..                 # delete an image
+
+# fastapi examples to run by dev mode
+- uv run fastapi dev ./src/app/<filename>.py
+
+# fastapi examples to run by prod mode
+- uv run fastapi run ./src/app/<filename>.py
+
+# fastapi swagger URI
+- https://localhost:8000/docs
+
+# fastapi to test
+- https://localhost:8000/<data>
