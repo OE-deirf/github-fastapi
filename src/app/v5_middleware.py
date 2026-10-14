@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
+from pwdlib.exceptions import UnknownHashError
 from typing import Annotated, Any, AsyncGenerator, Callable
 from fastapi import HTTPException, status
 from fastapi import Depends, FastAPI, Request
@@ -17,7 +18,7 @@ from pydantic import BaseModel
 
 
 SECRET_KEY: str = os.environ.get("SECRET_KEY", "very-secret-key")
-ALGORITHM = "HS256"
+ALGORITHM = "HS512"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 password_hash: PasswordHash = PasswordHash.recommended()
@@ -47,8 +48,9 @@ app = FastAPI(
 class UserDB():
     fake_users_db: dict[str, dict[str, Any]] = {
         "alice": {
-            "hashed_password": password_hash.hash("very-secret-for-password-hash"),
-            "active": False,
+            "username": "alice",
+            "hashed_password": password_hash.hash("secret"),
+            "active": True,
         },
     }
 
@@ -100,13 +102,22 @@ class PredictRequest(BaseModel):
 
 
 def authenticate_user(username: str, password: str) -> str:
+    active_user: bool = UserDB().get_active(username)
+    if not active_user:
+        return ""
+
     hashed_password: str = UserDB().get_hashed_password(username)
-    return username if password_hash.verify(password, hashed_password) else ""
+    try:
+        pwd_validation: bool = password_hash.verify(password, hashed_password)
+    except UnknownHashError:
+        pwd_validation = False
+    valid_username: str = UserDB().get_user(username).get("username", "")
+    return valid_username if pwd_validation else ""
 
 
 def create_access_token(username: str) -> str:
     expire: datetime = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode({"username": username, "expire": expire}, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode({"username": username, "expire": expire.time().isoformat()}, SECRET_KEY, algorithm=ALGORITHM)
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> User:
@@ -121,7 +132,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> Use
         raise credentials_exception
     username: str = payload.get("username", "")
     active_user: bool = UserDB().get_active(username) if username else False
-    if active_user:
+    if not active_user:
         raise credentials_exception
     user: dict[str, Any] = UserDB().get_user(username)
     return User(**user)
@@ -146,8 +157,8 @@ async def read_items(token: Annotated[str, Depends(oauth2_scheme)]) -> dict[str,
 
 @app.get("/health", tags=["info"])
 async def health() -> HealthResponse:
-    status = "ok"
-    return HealthResponse(*status)
+    status: dict[str, str] = {"status": "ok"}
+    return HealthResponse(**status)
 
 
 @app.get("/version", tags=["info"])
