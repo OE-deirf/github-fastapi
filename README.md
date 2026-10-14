@@ -4,13 +4,13 @@ Simple Machine Learning demo using docker in github + MLFlow + FastAPI examples
 # venv
 ## with pip
 - python3.10 -m venv .venv
-- source .venv/bin/activate
-- pip install -v -r requirements.txt/requirements_dev.txt
+- source .venv/bin/activate (on windows: source .venv/Scripts/activate)
+- pip install -v -r requirements_dev.txt
 
 ## with uv -- recommended
 - uv venv --python 3.10
-- source .venv/bin/activate
-- uv pip install -r requirements.txt/requirements_dev.txt
+- source .venv/bin/activate (on windows: source .venv/Scripts/activate)
+- uv pip install -r requirements_dev.txt
 
 # DVC, GIT  init
 - git init
